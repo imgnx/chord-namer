@@ -1,910 +1,2185 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Chord Namer</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-  :root {
-    color-scheme: light;
-  }
 
-  * {
-    box-sizing: border-box;
-  }
-
-  body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    background: #f4f6fb;
-    color: #1d1d1f;
-  }
-
-  a {
-    color: inherit;
-  }
-
-  .app {
-    max-width: 1080px;
-    margin: 0 auto;
-    padding: 48px 24px 64px;
-  }
-
-  header {
-    margin-bottom: 32px;
-  }
-
-  h1 {
-    font-size: clamp(2rem, 4vw, 2.8rem);
-    margin: 0 0 12px;
-    color: #253062;
-    letter-spacing: -0.02em;
-  }
-
-  .lead {
-    margin: 0;
-    max-width: 720px;
-    color: #47506b;
-    line-height: 1.6;
-    font-size: 1.05rem;
-  }
-
-  .controls {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-bottom: 24px;
-  }
-
-  .control-label {
-    font-size: 0.95rem;
-    color: #4b567a;
-    margin-right: 8px;
-  }
-
-  .shape-pill {
-    display: inline-block;
-    background: #eef2ff;
-    color: #253062;
-    padding: 6px 12px;
-    border-radius: 999px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-  }
-
-  .reset-button {
-    background: #3b5bfd;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    padding: 10px 16px;
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s ease, transform 0.15s ease;
-  }
-
-  .reset-button:hover,
-  .reset-button:focus {
-    background: #304ae6;
-  }
-
-  .reset-button:active {
-    transform: translateY(1px);
-  }
-
-  .fretboard-wrapper {
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 24px 65px rgba(45, 60, 140, 0.15);
-    padding: 24px;
-    overflow-x: auto;
-    margin-bottom: 28px;
-  }
-
-  table.fretboard {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 780px;
-  }
-
-  .fretboard thead th {
-    font-size: 0.68rem;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: #6a759b;
-    padding-bottom: 10px;
-    font-weight: 600;
-  }
-
-  .fretboard tbody td {
-    padding: 4px;
-    text-align: center;
-  }
-
-  .mute-col {
-    width: 85px;
-  }
-
-  .string-col {
-    width: 110px;
-  }
-
-  .string-label-cell {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    font-weight: 600;
-    color: #1f2b59;
-  }
-
-  .string-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 999px;
-    background: #e7ecff;
-    font-size: 0.85rem;
-    color: #2a3d83;
-  }
-
-  .string-note {
-    font-size: 1rem;
-    letter-spacing: 0.04em;
-  }
-
-  .fret-selector {
-    display: block;
-    position: relative;
-    cursor: pointer;
-  }
-
-  .fret-selector-input {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .fret-selector-label {
-    display: block;
-    padding: 8px 0;
-    border-radius: 8px;
-    border: 1px solid transparent;
-    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
-    font-size: 0.95rem;
-  }
-
-  .fret-selector-input:focus + .fret-selector-label {
-    border-color: rgba(59, 91, 253, 0.35);
-    box-shadow: 0 0 0 3px rgba(59, 91, 253, 0.25);
-  }
-
-  .fret-selector-input:checked + .fret-selector-label {
-    background: #3b5bfd;
-    color: #fff;
-    font-weight: 600;
-    box-shadow: 0 12px 24px rgba(59, 91, 253, 0.28);
-  }
-
-  .fret-selector-label:hover {
-    background: rgba(59, 91, 253, 0.08);
-  }
-
-  .insight-card {
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 22px 60px rgba(31, 46, 95, 0.12);
-    padding: 28px;
-    margin-bottom: 28px;
-  }
-
-  .bulk-card {
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 22px 60px rgba(31, 46, 95, 0.12);
-    padding: 20px 24px;
-    margin-bottom: 28px;
-  }
-
-  .rows-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-  }
-
-  .six-row-list {
-    display: grid;
-    gap: 10px;
-  }
-
-  .six-input-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  .cell-input {
-    width: 3.2ch;
-    text-align: center;
-    padding: 6px 6px;
-    border-radius: 8px;
-    border: 1px solid #c9d1ff;
-    font-family: ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    font-size: 0.95rem;
-    text-transform: uppercase;
-  }
-
-  .cell-input.error {
-    border-color: #b3261e;
-    background: #fdecea;
-  }
-
-  .row-meta {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: #4b567a;
-    font-size: 0.9rem;
-  }
-
-  .bulk-input {
-    width: 100%;
-    min-height: 120px;
-    padding: 10px 12px;
-    border-radius: 10px;
-    border: 1px solid #c9d1ff;
-    font-family: ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    font-size: 0.95rem;
-    resize: vertical;
-  }
-
-  .bulk-hint {
-    font-size: 0.9rem;
-    color: #4b567a;
-    margin-top: 6px;
-  }
-
-  .small-button {
-    background: #3b5bfd;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  .parsed-suggest {
-    font-size: 0.9rem;
-    color: #4b567a;
-  }
-
-  .insight-card h2 {
-    margin: 0 0 12px;
-    color: #23336e;
-    font-size: 1.35rem;
-  }
-
-  .insight-card p {
-    margin: 0 0 16px;
-    color: #4c567a;
-    line-height: 1.6;
-  }
-
-  .note-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 12px 0 16px;
-  }
-
-  .note-tag {
-    background: #eef2ff;
-    color: #253062;
-    padding: 6px 12px;
-    border-radius: 999px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-  }
-
-  .note-breakdown {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: 6px;
-  }
-
-  .note-breakdown li {
-    font-size: 0.95rem;
-    color: #434e73;
-  }
-
-  .note-strong {
-    font-weight: 600;
-    color: #253062;
-  }
-
-  .chord-list {
-    list-style: none;
-    padding: 0;
-    margin: 20px 0 0;
-    display: grid;
-    gap: 12px;
-  }
-
-  .chord-item {
-    background: #f6f7ff;
-    border: 1px solid #dfe4ff;
-    border-radius: 14px;
-    padding: 18px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .chord-name {
-    font-weight: 700;
-    font-size: 1.2rem;
-    color: #253062;
-  }
-
-  .chord-details {
-    font-size: 0.95rem;
-    color: #4b567a;
-  }
-
-  .chord-formula {
-    font-size: 0.85rem;
-    color: #5c6aad;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  @media (max-width: 720px) {
-    .controls {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    .fretboard-wrapper {
-      padding: 18px;
-    }
-
-    table.fretboard {
-      min-width: 640px;
-    }
-
-    .insight-card {
-      padding: 22px;
-    }
-
-    .six-input-row {
-      gap: 6px;
-    }
-  }
-</style>
-</head>
-<body>
-<div id="root"></div>
-<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
-<script type="text/babel">
-  const STANDARD_TUNING = [
-    { name: 'E', midi: 40 },
-    { name: 'A', midi: 45 },
-    { name: 'D', midi: 50 },
-    { name: 'G', midi: 55 },
-    { name: 'B', midi: 59 },
-    { name: 'E', midi: 64 },
-  ];
-
-  const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-
-  const NOTE_INDEX = NOTE_NAMES.reduce((map, note, index) => {
-    map[note] = index;
-    return map;
-  }, {});
-
-  const FRETS = Array.from({ length: 37 }, (_, index) => index); // 0–36
-
-  const DEFAULT_POSITIONS = ['x', 3, 2, 0, 1, 0]; // C major open shape
-
-  const CHORD_PATTERNS = [
-    { id: 'maj', intervals: [0, 4, 7], description: 'Major triad', formula: '1 3 5', buildName: (root) => root },
-    { id: 'min', intervals: [0, 3, 7], description: 'Minor triad', formula: '1 b3 5', buildName: (root) => root + 'm' },
-    { id: 'sus2', intervals: [0, 2, 7], description: 'Suspended second', formula: '1 2 5', buildName: (root) => root + 'sus2' },
-    { id: 'sus4', intervals: [0, 5, 7], description: 'Suspended fourth', formula: '1 4 5', buildName: (root) => root + 'sus4' },
-    { id: 'dim', intervals: [0, 3, 6], description: 'Diminished triad', formula: '1 b3 b5', buildName: (root) => root + 'dim' },
-    { id: 'aug', intervals: [0, 4, 8], description: 'Augmented triad', formula: '1 3 #5', buildName: (root) => root + 'aug' },
-    { id: 'maj6', intervals: [0, 4, 7, 9], description: 'Major sixth', formula: '1 3 5 6', buildName: (root) => root + '6' },
-    { id: 'min6', intervals: [0, 3, 7, 9], description: 'Minor sixth', formula: '1 b3 5 6', buildName: (root) => root + 'm6' },
-    { id: 'maj7', intervals: [0, 4, 7, 11], description: 'Major seventh', formula: '1 3 5 7', buildName: (root) => root + 'maj7' },
-    { id: 'min7', intervals: [0, 3, 7, 10], description: 'Minor seventh', formula: '1 b3 5 b7', buildName: (root) => root + 'm7' },
-    { id: 'dom7', intervals: [0, 4, 7, 10], description: 'Dominant seventh', formula: '1 3 5 b7', buildName: (root) => root + '7' },
-    { id: 'm7b5', intervals: [0, 3, 6, 10], description: 'Half-diminished', formula: '1 b3 b5 b7', buildName: (root) => root + 'm7b5' },
-    { id: 'dim7', intervals: [0, 3, 6, 9], description: 'Diminished seventh', formula: '1 b3 b5 bb7', buildName: (root) => root + 'dim7' },
-    { id: 'add9', intervals: [0, 2, 4, 7], description: 'Add nine', formula: '1 3 5 9', buildName: (root) => root + 'add9' },
-    { id: 'madd9', intervals: [0, 2, 3, 7], description: 'Minor add nine', formula: '1 b3 5 9', buildName: (root) => root + 'madd9' },
-    { id: 'maj9', intervals: [0, 2, 4, 7, 11], description: 'Major ninth', formula: '1 3 5 7 9', buildName: (root) => root + 'maj9' },
-    { id: 'dom9', intervals: [0, 2, 4, 7, 10], description: 'Dominant ninth', formula: '1 3 5 b7 9', buildName: (root) => root + '9' },
-    { id: 'min9', intervals: [0, 2, 3, 7, 10], description: 'Minor ninth', formula: '1 b3 5 b7 9', buildName: (root) => root + 'm9' },
-  ];
-
-  function formatShape(positions) {
-    return '{' + positions.map((pos) => (pos === 'x' ? 'X' : pos)).join(' ') + '}';
-  }
-
-  function wrapModulo(n, mod) {
-    return ((n % mod) + mod) % mod;
-  }
-
-  function getTransposedTuning(semitones) {
-    return STANDARD_TUNING.map((t) => {
-      const idx = wrapModulo(NOTE_INDEX[t.name] + semitones, NOTE_NAMES.length);
-      return { name: NOTE_NAMES[idx], midi: t.midi + semitones };
-    });
-  }
-
-  function analyzePositions(positions, tuning) {
-    const playedNotes = [];
-    const seenNotes = new Set();
-    const uniqueNotes = [];
-
-    positions.forEach((fret, stringIdx) => {
-      if (fret === 'x') {
-        return;
+  <head>
+    <meta charset="UTF-8">
+    <title>Chord Namer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      :root {
+        color-scheme: light;
       }
 
-      const stringTuning = tuning[stringIdx];
-      const noteIndex = (NOTE_INDEX[stringTuning.name] + fret) % NOTE_NAMES.length;
-      const note = NOTE_NAMES[noteIndex];
-      const pitch = stringTuning.midi + fret;
-
-      const noteInfo = {
-        string: stringIdx,
-        fret,
-        note,
-        pitch,
-      };
-
-      playedNotes.push(noteInfo);
-
-      if (!seenNotes.has(note)) {
-        seenNotes.add(note);
-        uniqueNotes.push(note);
+      * {
+        box-sizing: border-box;
       }
-    });
 
-    const bass = playedNotes.reduce((lowest, current) => {
-      if (!lowest || current.pitch < lowest.pitch) {
-        return current;
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        background: #f4f6fb;
+        color: #1d1d1f;
       }
-      return lowest;
-    }, null);
 
-    return {
-      playedNotes,
-      uniqueNotes,
-      bassNote: bass ? bass.note : null,
-    };
-  }
-
-  function intervalsFromRoot(notes, root) {
-    const rootIndex = NOTE_INDEX[root];
-    const intervals = new Set();
-
-    notes.forEach((note) => {
-      const noteIndex = NOTE_INDEX[note];
-      const interval = (noteIndex - rootIndex + NOTE_NAMES.length) % NOTE_NAMES.length;
-      intervals.add(interval);
-    });
-
-    return Array.from(intervals).sort((a, b) => a - b);
-  }
-
-  function isExactMatch(candidate, pattern) {
-    if (candidate.length !== pattern.length) {
-      return false;
-    }
-    for (let i = 0; i < pattern.length; i += 1) {
-      if (candidate[i] !== pattern[i]) {
-        return false;
+      a {
+        color: inherit;
       }
-    }
-    return true;
-  }
 
-  function dedupeMatches(matches) {
-    const seen = new Set();
-    return matches.filter((match) => {
-      if (seen.has(match.displayName)) {
-        return false;
+      .app {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 48px 24px 64px;
       }
-      seen.add(match.displayName);
-      return true;
-    });
-  }
 
-  function computeChordSuggestions(notes, bassNote) {
-    if (notes.length < 2) {
-      return [];
-    }
+      header {
+        margin-bottom: 32px;
+      }
 
-    const matches = [];
+      h1 {
+        font-size: clamp(2rem, 4vw, 2.8rem);
+        margin: 0 0 12px;
+        color: #253062;
+        letter-spacing: -0.02em;
+      }
 
-    notes.forEach((root) => {
-      const intervals = intervalsFromRoot(notes, root);
+      .lead {
+        margin: 0;
+        max-width: 720px;
+        color: #47506b;
+        line-height: 1.6;
+        font-size: 1.05rem;
+      }
 
-      CHORD_PATTERNS.forEach((pattern) => {
-        if (isExactMatch(intervals, pattern.intervals)) {
-          const baseName = pattern.buildName(root);
-          const displayName = bassNote && bassNote !== root ? baseName + '/' + bassNote : baseName;
-          matches.push({
-            id: pattern.id + '-' + root + '-' + displayName,
-            displayName,
-            description: pattern.description,
-            formula: pattern.formula,
-          });
+      .controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+
+      .control-label {
+        font-size: 0.95rem;
+        color: #4b567a;
+        margin-right: 8px;
+      }
+
+      .shape-pill {
+        display: inline-block;
+        background: #eef2ff;
+        color: #253062;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+      }
+
+      .reset-button {
+        background: #3b5bfd;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 16px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s ease, transform 0.15s ease;
+      }
+
+      .reset-button:hover,
+      .reset-button:focus {
+        background: #304ae6;
+      }
+
+      .reset-button:active {
+        transform: translateY(1px);
+      }
+
+      .fretboard-wrapper {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 24px 65px rgba(45, 60, 140, 0.15);
+        padding: 24px;
+        overflow-x: auto;
+        margin-bottom: 28px;
+      }
+
+      table.fretboard {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 780px;
+      }
+
+      .fretboard thead th {
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: #6a759b;
+        padding-bottom: 10px;
+        font-weight: 600;
+      }
+
+      .fretboard tbody td {
+        padding: 4px;
+        text-align: center;
+      }
+
+      .mute-col {
+        width: 85px;
+      }
+
+      .string-col {
+        width: 110px;
+      }
+
+      .string-label-cell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-weight: 600;
+        color: #1f2b59;
+      }
+
+      .string-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        background: #e7ecff;
+        font-size: 0.85rem;
+        color: #2a3d83;
+      }
+
+      .string-note {
+        font-size: 1rem;
+        letter-spacing: 0.04em;
+      }
+
+      .fret-selector {
+        display: block;
+        position: relative;
+        cursor: pointer;
+      }
+
+      .fret-selector-input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .fret-selector-label {
+        display: block;
+        padding: 8px 0;
+        border-radius: 8px;
+        border: 1px solid transparent;
+        transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+        font-size: 0.95rem;
+      }
+
+      .fret-selector-input:focus+.fret-selector-label {
+        border-color: rgba(59, 91, 253, 0.35);
+        box-shadow: 0 0 0 3px rgba(59, 91, 253, 0.25);
+      }
+
+      .fret-selector-input:checked+.fret-selector-label {
+        background: #3b5bfd;
+        color: #fff;
+        font-weight: 600;
+        box-shadow: 0 12px 24px rgba(59, 91, 253, 0.28);
+      }
+
+      .fret-selector-label:hover {
+        background: rgba(59, 91, 253, 0.08);
+      }
+
+      .insight-card {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 22px 60px rgba(31, 46, 95, 0.12);
+        padding: 28px;
+        margin-bottom: 28px;
+      }
+
+      .bulk-card {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 22px 60px rgba(31, 46, 95, 0.12);
+        padding: 20px 24px;
+        margin-bottom: 28px;
+      }
+
+      .mode-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 24px;
+      }
+
+      .mode-button {
+        border: 1px solid #3b5bfd;
+        background: #fff;
+        color: #3b5bfd;
+        border-radius: 999px;
+        padding: 8px 18px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .mode-button.active {
+        background: #3b5bfd;
+        color: #fff;
+        box-shadow: 0 14px 28px rgba(59, 91, 253, 0.23);
+      }
+
+      .mode-button:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(59, 91, 253, 0.2);
+      }
+
+      .main-layout {
+        display: flex;
+        align-items: flex-start;
+        gap: 24px;
+      }
+
+      .primary-column {
+        flex: 1 1 0%;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .side-column {
+        flex: 0 0 25%;
+        max-width: 320px;
+        display: flex;
+      }
+
+      .side-column .bulk-card {
+        width: 100%;
+        margin-bottom: 0;
+      }
+
+      .flex-wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .tuner-card {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 22px 60px rgba(31, 46, 95, 0.12);
+        padding: 24px;
+      }
+
+      .tuner-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      .tuner-header h2 {
+        margin: 0;
+        color: #23336e;
+        font-size: 1.3rem;
+      }
+
+      .tuner-sub {
+        font-size: 0.95rem;
+        color: #4b567a;
+      }
+
+      .tuner-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+      }
+
+      .tuner-input-select {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 0;
+      }
+
+      .tuner-input-select label {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #23336e;
+      }
+
+      .tuner-select {
+        border: 1px solid #c9d1ff;
+        border-radius: 999px;
+        padding: 6px 14px;
+        background: #fff;
+        color: #23336e;
+        font-size: 0.9rem;
+        line-height: 1.4;
+        cursor: pointer;
+      }
+
+      .tuner-select:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .tuner-input-note {
+        font-size: 0.85rem;
+        color: #4b567a;
+        margin-top: -8px;
+        margin-bottom: 12px;
+      }
+
+      .tuner-visuals {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+
+      .tuner-oscilloscope {
+        background: #f5f6ff;
+        border: 1px solid #dfe4ff;
+        border-radius: 14px;
+        padding: 8px;
+      }
+
+      .tuner-oscilloscope-canvas {
+        display: block;
+        width: 100%;
+        height: 120px;
+      }
+
+      .tuner-level {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .tuner-level-label {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #23336e;
+      }
+
+      .tuner-level-meter {
+        flex: 1;
+        height: 8px;
+        border-radius: 999px;
+        background: #e4e7fb;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .tuner-level-fill {
+        position: absolute;
+        inset: 0;
+        transform-origin: left center;
+        background: linear-gradient(90deg, #3b5bfd, #7c8cff);
+        transition: transform 0.12s ease;
+      }
+
+      .tuner-level-value {
+        font-size: 0.85rem;
+        color: #4b567a;
+        min-width: 36px;
+        text-align: right;
+      }
+
+      .tuner-button {
+        border: 1px solid #c9d1ff;
+        background: #eff2ff;
+        color: #23336e;
+        border-radius: 999px;
+        padding: 8px 16px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.12s ease;
+      }
+
+      .tuner-button.primary {
+        background: #3b5bfd;
+        border-color: #3b5bfd;
+        color: #fff;
+      }
+
+      .tuner-button:hover:not(:disabled) {
+        transform: translateY(-1px);
+        background: #dfe4ff;
+      }
+
+      .tuner-button.primary:hover:not(:disabled) {
+        background: #304ae6;
+      }
+
+      .tuner-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .tuner-message {
+        font-size: 0.9rem;
+        color: #b3261e;
+      }
+
+      .tuner-readouts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+
+      .tuner-box {
+        background: #f5f6ff;
+        border: 1px solid #dfe4ff;
+        border-radius: 14px;
+        padding: 16px;
+      }
+
+      .tuner-label {
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.12em;
+        color: #6a759b;
+        margin-bottom: 8px;
+      }
+
+      .tuner-note-row {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+      }
+
+      .tuner-note {
+        font-size: 2.8rem;
+        font-weight: 800;
+        color: #1f2b59;
+      }
+
+      .tuner-octave {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #5a6590;
+      }
+
+      .tuner-frequency {
+        font-size: 0.95rem;
+        color: #4b567a;
+      }
+
+      .tuner-meter {
+        position: relative;
+        height: 24px;
+        border-radius: 999px;
+        background: #e1e7ff;
+        border: 1px solid #c7d0ff;
+        overflow: hidden;
+        margin-bottom: 10px;
+      }
+
+      .tuner-needle {
+        position: absolute;
+        top: -4px;
+        width: 2px;
+        height: 32px;
+        background: #3b5bfd;
+        left: 50%;
+        transform: translateX(-50%);
+        box-shadow: 0 0 12px rgba(59, 91, 253, 0.3);
+      }
+
+      .tuner-ticks {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .tuner-tick {
+        position: absolute;
+        top: 4px;
+        bottom: 4px;
+        width: 1px;
+        background: rgba(46, 61, 122, 0.35);
+      }
+
+      .tuner-tick.major {
+        top: 2px;
+        bottom: 2px;
+        background: rgba(46, 61, 122, 0.6);
+      }
+
+      .tuner-cents-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        color: #4b567a;
+        font-size: 0.9rem;
+      }
+
+      .tuner-cents-value {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: #23336e;
+      }
+
+      .tuner-status {
+        font-weight: 700;
+        color: #4b567a;
+      }
+
+      .tuner-status.ok {
+        color: #13805a;
+      }
+
+      .tuner-status.warn {
+        color: #ab6700;
+      }
+
+      .tuner-status.bad {
+        color: #b3261e;
+      }
+
+      .tuner-strings {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+
+      .tuner-chip {
+        border: 1px solid #c9d1ff;
+        background: #eff2ff;
+        color: #23336e;
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.12s ease;
+      }
+
+      .tuner-chip.active {
+        background: #d7ddff;
+        border-color: #3b5bfd;
+        color: #23336e;
+      }
+
+      .tuner-chip:hover {
+        transform: translateY(-1px);
+      }
+
+      .tuner-footer {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .tuner-hint {
+        font-size: 0.85rem;
+        color: #6a759b;
+      }
+
+      .riff-log {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .riff-log-item {
+        background: #f6f7ff;
+        border: 1px solid #dfe4ff;
+        border-radius: 12px;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .riff-log-note {
+        font-weight: 700;
+        color: #253062;
+      }
+
+      .riff-log-meta {
+        color: #4b567a;
+        font-size: 0.9rem;
+      }
+
+      .rows-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+
+      .rows-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .six-row-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .six-input-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .cell-input {
+        width: 3.2ch;
+        text-align: center;
+        padding: 6px 6px;
+        border-radius: 8px;
+        border: 1px solid #c9d1ff;
+        font-family: ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 0.95rem;
+        text-transform: uppercase;
+      }
+
+      .cell-input.error {
+        border-color: #b3261e;
+        background: #fdecea;
+      }
+
+      .row-meta {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #4b567a;
+        font-size: 0.9rem;
+      }
+
+      .select-suggest {
+        padding: 8px 10px;
+        border-radius: 8px;
+        border: 1px solid #c9d1ff;
+        background: #fff;
+        font-size: 0.95rem;
+        color: #253062;
+      }
+
+      .bulk-input {
+        width: 100%;
+        min-height: 120px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #c9d1ff;
+        font-family: ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 0.95rem;
+        resize: vertical;
+      }
+
+      .bulk-hint {
+        font-size: 0.9rem;
+        color: #4b567a;
+        margin-top: 6px;
+      }
+
+      .small-button {
+        background: #3b5bfd;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .parsed-suggest {
+        font-size: 0.9rem;
+        color: #4b567a;
+      }
+
+      .insight-card h2 {
+        margin: 0 0 12px;
+        color: #23336e;
+        font-size: 1.35rem;
+      }
+
+      .insight-card p {
+        margin: 0 0 16px;
+        color: #4c567a;
+        line-height: 1.6;
+      }
+
+      .note-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 12px 0 16px;
+      }
+
+      .note-tag {
+        background: #eef2ff;
+        color: #253062;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+      }
+
+      .note-breakdown {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 6px;
+      }
+
+      .note-breakdown li {
+        font-size: 0.95rem;
+        color: #434e73;
+      }
+
+      .note-strong {
+        font-weight: 600;
+        color: #253062;
+      }
+
+      .chord-list {
+        list-style: none;
+        padding: 0;
+        margin: 20px 0 0;
+        display: grid;
+        gap: 12px;
+      }
+
+      .chord-item {
+        background: #f6f7ff;
+        border: 1px solid #dfe4ff;
+        border-radius: 14px;
+        padding: 18px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .chord-name {
+        font-weight: 700;
+        font-size: 1.2rem;
+        color: #253062;
+      }
+
+      .chord-details {
+        font-size: 0.95rem;
+        color: #4b567a;
+      }
+
+      .chord-formula {
+        font-size: 0.85rem;
+        color: #5c6aad;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      @media (max-width: 960px) {
+        .main-layout {
+          flex-direction: column;
         }
-      });
-    });
 
-    return dedupeMatches(matches);
-  }
-
-  function StringRow({ stringIdx, selection, onChange, tuning }) {
-    const stringNumber = tuning.length - stringIdx;
-    const stringTuning = tuning[stringIdx];
-
-    return (
-      <tr>
-        <td>
-          <label className="fret-selector">
-            <input
-              className="fret-selector-input"
-              type="radio"
-              name={'string-' + stringIdx}
-              value="x"
-              checked={selection === 'x'}
-              onChange={() => onChange('x')}
-            />
-            <span className="fret-selector-label">Mute</span>
-          </label>
-        </td>
-        <td>
-          <div className="string-label-cell">
-            <span className="string-badge">{stringNumber}</span>
-            <span className="string-note">{stringTuning.name}</span>
-          </div>
-        </td>
-        {FRETS.map((fret) => (
-          <td key={fret}>
-            <label className="fret-selector">
-              <input
-                className="fret-selector-input"
-                type="radio"
-                name={'string-' + stringIdx}
-                value={fret}
-                checked={selection === fret}
-                onChange={() => onChange(fret)}
-              />
-              <span className="fret-selector-label">{fret === 0 ? 'Open' : fret}</span>
-            </label>
-          </td>
-        ))}
-      </tr>
-    );
-  }
-
-  function Fretboard({ positions, onChange, tuning }) {
-    return (
-      <div className="fretboard-wrapper">
-        <table className="fretboard">
-          <thead>
-            <tr>
-              <th className="mute-col">Mute</th>
-              <th className="string-col">String</th>
-              {FRETS.map((fret) => (
-                <th key={fret}>{fret === 0 ? 'Open' : 'F' + fret}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {positions.map((selection, idx) => (
-              <StringRow
-                key={idx}
-                stringIdx={idx}
-                selection={selection}
-                onChange={(value) => onChange(idx, value)}
-                tuning={tuning}
-              />
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  }
-
-  function App() {
-    const [positions, setPositions] = React.useState(DEFAULT_POSITIONS);
-    const [transpose, setTranspose] = React.useState(0);
-    const [bulkText, setBulkText] = React.useState('');
-    const emptyRow = () => ['', '', '', '', '', ''];
-    const [rows, setRows] = React.useState([emptyRow()]);
-
-    const tuning = React.useMemo(() => getTransposedTuning(transpose), [transpose]);
-
-    const handleFretChange = (stringIdx, value) => {
-      setPositions((prev) => {
-        const next = prev.slice();
-        next[stringIdx] = value;
-        return next;
-      });
-    };
-
-    const resetPositions = () => {
-      setPositions(DEFAULT_POSITIONS.slice());
-    };
-
-    const analysis = React.useMemo(() => analyzePositions(positions, tuning), [positions, tuning]);
-    const chordSuggestions = React.useMemo(
-      () => computeChordSuggestions(analysis.uniqueNotes, analysis.bassNote),
-      [analysis.uniqueNotes, analysis.bassNote]
-    );
-
-    function parseLineToPositions(line) {
-      let cleaned = line.trim();
-      if (!cleaned) return { error: 'Empty line', positions: null };
-
-      // Allow surrounding braces or brackets: {X 3 2 0 1 0}
-      cleaned = cleaned.replace(/[{}()\[\]]/g, '').trim();
-
-      // Compact style support (single chars only): x32010
-      if (/^[xX0-9]{6}$/.test(cleaned)) {
-        const arr = cleaned.toUpperCase().split('').map((ch) => (ch === 'X' ? 'x' : parseInt(ch, 10)));
-        return { positions: arr, error: null };
+        .side-column {
+          max-width: none;
+          width: 100%;
+        }
       }
 
-      // Accept delimiters: space, comma, semicolon, dash, slash, pipe
-      const tokens = cleaned.split(/[\s,;\-|/]+/).filter(Boolean);
-      if (tokens.length !== 6) {
-        return { error: 'Expected 6 entries (got ' + tokens.length + ')', positions: null };
+      @media (max-width: 720px) {
+        .controls {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .fretboard-wrapper {
+          padding: 18px;
+        }
+
+        table.fretboard {
+          min-width: 640px;
+        }
+
+        .insight-card {
+          padding: 22px;
+        }
+
+        .six-input-row {
+          gap: 6px;
+        }
       }
-      const pos = [];
-      for (let i = 0; i < 6; i += 1) {
-        const t = tokens[i].trim();
-        if (/^[xX]$/.test(t)) {
-          pos.push('x');
-        } else if (/^\d+$/.test(t)) {
-          const n = parseInt(t, 10);
-          if (n < 0 || n > 24) {
-            return { error: 'Fret out of range: ' + n + ' (0–24)', positions: null };
+    </style>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <script type="text/babel">
+      const STANDARD_TUNING = [
+        { name: 'E', midi: 40 },
+        { name: 'A', midi: 45 },
+        { name: 'D', midi: 50 },
+        { name: 'G', midi: 55 },
+        { name: 'B', midi: 59 },
+        { name: 'E', midi: 64 },
+      ];
+
+      const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+      const A4 = 440;
+      const NOTE_INDEX = NOTE_NAMES.reduce((map, note, index) => {
+        map[note] = index;
+        return map;
+      }, {});
+
+      const FRETS = Array.from({ length: 37 }, (_, index) => index); // 0–36
+
+      const DEFAULT_POSITIONS = [0, 0, 0, 0, 0, 0]; // All strings open
+      const DEFAULT_RIFF_POSITIONS = ['x', 'x', 'x', 'x', 'x', 'x'];
+      const MAX_RIFF_EVENTS = 64;
+      const TUNER_STRING_TARGETS = [
+        { name: 'E4', freq: 329.6276 },
+        { name: 'B3', freq: 246.9417 },
+        { name: 'G3', freq: 196.0 },
+        { name: 'D3', freq: 146.8324 },
+        { name: 'A2', freq: 110.0 },
+        { name: 'E2', freq: 82.4069 },
+      ];
+
+      function createInitialTunerReadout() {
+        return {
+          note: '--',
+          octave: '',
+          freq: 0,
+          cents: 0,
+          displayCents: 0,
+          status: 'Idle',
+          statusKind: '',
+          rawCents: 0,
+        };
+      }
+
+      function clampValue(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function tunerAutoCorrelate(buffer, sampleRate) {
+        let rms = 0;
+        for (let i = 0; i < buffer.length; i += 1) rms += buffer[i] * buffer[i];
+        rms = Math.sqrt(rms / buffer.length);
+        if (rms < 0.008) return -1;
+
+        let start = 0;
+        let end = buffer.length - 1;
+        const threshold = 0.2;
+        for (; start < buffer.length / 2 && Math.abs(buffer[start]) < threshold; start += 1);
+        for (; end > buffer.length / 2 && Math.abs(buffer[end]) < threshold; end -= 1);
+        const size = end - start + 1;
+        if (size < 8) return -1;
+
+        const c = new Float32Array(size);
+        for (let lag = 0; lag < size; lag += 1) {
+          let sum = 0;
+          for (let i = 0; i < size - lag; i += 1) {
+            sum += buffer[start + i] * buffer[start + i + lag];
           }
-          pos.push(n);
-        } else {
-          return { error: 'Invalid token: ' + t, positions: null };
+          c[lag] = sum;
         }
-      }
-      return { positions: pos, error: null };
-    }
 
-    function parseCellValue(v) {
-      const t = (v || '').trim();
-      if (t === '') return { ok: false, reason: 'empty' };
-      if (/^[xX]$/.test(t)) return { ok: true, value: 'x' };
-      if (/^\d+$/.test(t)) {
-        const n = parseInt(t, 10);
-        if (n < 0 || n > 24) return { ok: false, reason: 'range' };
-        return { ok: true, value: n };
-      }
-      return { ok: false, reason: 'invalid' };
-    }
-
-    function parseRowCells(cells) {
-      if (!cells || cells.length !== 6) return { error: 'Need 6 values', positions: null, errors: Array(6).fill('empty') };
-      const pos = [];
-      const errs = [];
-      for (let i = 0; i < 6; i += 1) {
-        const r = parseCellValue(cells[i]);
-        if (!r.ok) {
-          errs[i] = r.reason;
-        } else {
-          errs[i] = null;
-          pos.push(r.value);
+        let d = 0;
+        while (d < size - 1 && c[d] > c[d + 1]) d += 1;
+        let peak = d;
+        let max = -1;
+        for (let i = d; i < size; i += 1) {
+          if (c[i] > max) {
+            max = c[i];
+            peak = i;
+          }
         }
+
+        if (peak === 0) return -1;
+
+        const x1 = c[peak - 1] || 0;
+        const x2 = c[peak];
+        const x3 = c[peak + 1] || 0;
+        const a = (x1 + x3 - 2 * x2) / 2;
+        const b = (x3 - x1) / 2;
+        const shift = a ? -b / (2 * a) : 0;
+        const period = peak + shift;
+        const freq = sampleRate / period;
+        return isFinite(freq) && freq > 10 && freq < 2000 ? freq : -1;
       }
-      const anyError = errs.some((e) => e);
-      if (anyError) return { error: 'incomplete', positions: null, errors: errs };
-      return { error: null, positions: pos, errors: errs };
-    }
 
-    const rowResults = React.useMemo(() => {
-      return rows.map((cells, idx) => {
-        const parsed = parseRowCells(cells);
-        if (parsed.error || !parsed.positions) {
-          return { id: 'row-' + idx, cells, parsed, analysis: null, suggestions: [] };
+      function tunerFreqToNoteData(freq) {
+        const midi = 12 * Math.log2(freq / A4) + 69;
+        const midiRounded = Math.round(midi);
+        const noteIndex = (midiRounded % 12 + 12) % 12;
+        const name = NOTE_NAMES[noteIndex];
+        const octave = Math.floor(midiRounded / 12) - 1;
+        const refFreq = A4 * Math.pow(2, (midiRounded - 69) / 12);
+        const cents = 1200 * Math.log2(freq / refFreq);
+        return { name, octave, cents, refFreq, midi: midiRounded };
+      }
+
+      function tunerCentsRelative(freq, targetFreq) {
+        return 1200 * Math.log2(freq / targetFreq);
+      }
+
+      function tunerClassify(cents) {
+        const magnitude = Math.abs(cents);
+        if (magnitude <= 5) return ['In tune', 'ok'];
+        if (magnitude <= 15) return ['Close', 'warn'];
+        return [cents < 0 ? 'Flat' : 'Sharp', 'bad'];
+      }
+
+      // Legacy patterns retained but not used in the new rule-based namer.
+      const CHORD_PATTERNS = [];
+
+      function formatShape(positions) {
+        return '{' + positions.map((pos) => (pos === 'x' ? 'X' : pos)).join(' ') + '}';
+      }
+
+      function wrapModulo(n, mod) {
+        return ((n % mod) + mod) % mod;
+      }
+
+      function getTransposedTuning(semitones) {
+        return STANDARD_TUNING.map((t) => {
+          const idx = wrapModulo(NOTE_INDEX[t.name] + semitones, NOTE_NAMES.length);
+          return { name: NOTE_NAMES[idx], midi: t.midi + semitones };
+        });
+      }
+
+      function analyzePositions(positions, tuning) {
+        const playedNotes = [];
+        const seenNotes = new Set();
+        const uniqueNotes = [];
+
+        positions.forEach((fret, stringIdx) => {
+          if (fret === 'x') {
+            return;
+          }
+
+          const stringTuning = tuning[stringIdx];
+          const noteIndex = (NOTE_INDEX[stringTuning.name] + fret) % NOTE_NAMES.length;
+          const note = NOTE_NAMES[noteIndex];
+          const pitch = stringTuning.midi + fret;
+
+          const noteInfo = {
+            string: stringIdx,
+            fret,
+            note,
+            pitch,
+          };
+
+          playedNotes.push(noteInfo);
+
+          if (!seenNotes.has(note)) {
+            seenNotes.add(note);
+            uniqueNotes.push(note);
+          }
+        });
+
+        const bass = playedNotes.reduce((lowest, current) => {
+          if (!lowest || current.pitch < lowest.pitch) {
+            return current;
+          }
+          return lowest;
+        }, null);
+
+        return {
+          playedNotes,
+          uniqueNotes,
+          bassNote: bass ? bass.note : null,
+        };
+      }
+
+      function intervalsFromRoot(notes, root) {
+        const rootIndex = NOTE_INDEX[root];
+        const intervals = new Set();
+
+        notes.forEach((note) => {
+          const noteIndex = NOTE_INDEX[note];
+          const interval = (noteIndex - rootIndex + NOTE_NAMES.length) % NOTE_NAMES.length;
+          intervals.add(interval);
+        });
+
+        return Array.from(intervals).sort((a, b) => a - b);
+      }
+
+      function contains(intervals, x) { return intervals.indexOf(x) !== -1; }
+      function hasAny(intervals, arr) { return arr.some((x) => contains(intervals, x)); }
+
+      function pickRoot(notes) {
+        // Prefer a root that yields a clear triad (3 or b3), then sus, else first note
+        for (let i = 0; i < notes.length; i += 1) {
+          const root = notes[i];
+          const ints = intervalsFromRoot(notes, root);
+          if (contains(ints, 4) || contains(ints, 3)) {
+            return root;
+          }
         }
-        const a = analyzePositions(parsed.positions, tuning);
-        const s = computeChordSuggestions(a.uniqueNotes, a.bassNote);
-        return { id: 'row-' + idx, cells, parsed, analysis: a, suggestions: s };
-      });
-    }, [rows, tuning]);
+        for (let i = 0; i < notes.length; i += 1) {
+          const root = notes[i];
+          const ints = intervalsFromRoot(notes, root);
+          if (!contains(ints, 4) && (contains(ints, 2) || contains(ints, 5))) {
+            return root;
+          }
+        }
+        return notes[0] || null;
+      }
 
-    function updateCell(rowIdx, cellIdx, value) {
-      setRows((prev) => {
-        const next = prev.map((r) => r.slice());
-        next[rowIdx][cellIdx] = value;
-        return next;
-      });
-    }
+      function modeHintsFromIntervals(ints) {
+        const hints = [];
+        const M3 = contains(ints, 4);
+        const m3 = contains(ints, 3);
+        const M7 = contains(ints, 11);
+        const b7 = contains(ints, 10);
+        const hasSharp4 = contains(ints, 6);
+        const b2 = contains(ints, 1);
+        const b6 = contains(ints, 8);
+        const M6 = contains(ints, 9);
 
-    function addRow() {
-      setRows((prev) => prev.concat([emptyRow()]));
-    }
+        if (M3) {
+          if (hasSharp4) hints.push('Lydian');
+          else if (b7) hints.push('Mixolydian');
+          else if (M7) hints.push('Ionian');
+        }
+        if (m3) {
+          if (M6 && b7) hints.push('Dorian');
+          if (b6 && b7) hints.push('Aeolian');
+          if (b2) hints.push('Phrygian');
+        }
+        return hints;
+      }
 
-    function removeRow(rowIdx) {
-      setRows((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== rowIdx)));
-    }
+      function nameByRulesWithRoot(root, notes, bassNote) {
+        if (!root || !notes || !notes.length) return null;
+        const ints = intervalsFromRoot(notes, root);
 
-    return (
-      <div className="app">
-        <header>
-          <h1>Chord Namer</h1>
-          <p className="lead">
-            Select frets across the guitar strings to discover matching chord names. The engine translates your voicing into theory-friendly labels.
-          </p>
-        </header>
+        const hasM3 = contains(ints, 4);
+        const hasm3 = contains(ints, 3);
+        const has5 = contains(ints, 7);
+        const has2 = contains(ints, 2); // 9
+        const has4 = contains(ints, 5); // 11
+        const has6 = contains(ints, 9); // 13
+        const hasb7 = contains(ints, 10);
+        const has7 = contains(ints, 11);
 
-        <div className="controls">
-          <div>
-            <span className="control-label">Current shape:</span>
-            <code className="shape-pill">{formatShape(positions)}</code>
+        let base = root;
+        let formula = ['1'];
+        let quality = '';
+        let adds = [];
+
+        if (hasm3) {
+          quality = 'm';
+          formula.push('b3');
+        } else if (hasM3) {
+          quality = '';
+          formula.push('3');
+        } else if (!hasM3 && !hasm3 && (has2 || has4)) {
+          // sus when no third
+          if (has4) {
+            quality = 'sus4';
+            formula.push('4');
+          } else {
+            quality = 'sus2';
+            formula.push('2');
+          }
+        }
+
+        if (has5) formula.push('5');
+
+        // Adds
+        if (hasM3 || hasm3) {
+          if (has2) adds.push('add2');
+          if (has4) adds.push('add4');
+        }
+        if (has6) adds.push('add6');
+        if (hasb7) adds.push('add b7');
+        if (has7) adds.push('add7');
+
+        const name = base + (quality === '' ? '' : quality) + (adds.length ? ' ' + adds.join(' ') : '');
+        const displayName = bassNote && bassNote !== root ? name + '/' + bassNote : name;
+        const modes = modeHintsFromIntervals(ints);
+
+        return {
+          id: 'rb-' + root + '-' + displayName,
+          displayName,
+          description: modes.length ? 'Modes: ' + modes.join(', ') : 'Rule-based name',
+          formula: formula.concat(adds.map((a) => a.replace('add', '').trim())).join(' '),
+        };
+      }
+
+      function nameByRules(notes, bassNote) {
+        const root = pickRoot(notes);
+        return nameByRulesWithRoot(root, notes, bassNote);
+      }
+
+      function computeChordSuggestions(notes, bassNote) {
+        if (!notes || notes.length === 0) return [];
+        const list = [];
+        const seen = {};
+        for (let i = 0; i < notes.length; i += 1) {
+          const root = notes[i];
+          const named = nameByRulesWithRoot(root, notes, bassNote);
+          if (named) {
+            if (!seen[named.displayName]) {
+              seen[named.displayName] = true;
+              list.push(named);
+            }
+          }
+        }
+        return list;
+      }
+
+      function StringRow({ stringIdx, selection, onChange, tuning }) {
+        const stringNumber = tuning.length - stringIdx;
+        const stringTuning = tuning[stringIdx];
+
+        return (
+          <tr>
+            <td>
+              <label className="fret-selector">
+                <input
+                  className="fret-selector-input"
+                  type="radio"
+                  name={'string-' + stringIdx}
+                  value="x"
+                  checked={selection === 'x'}
+                  onChange={() => onChange('x')}
+                />
+                <span className="fret-selector-label">Mute</span>
+              </label>
+            </td>
+            <td>
+              <div className="string-label-cell">
+                <span className="string-badge">{stringNumber}</span>
+                <span className="string-note">{stringTuning.name}</span>
+              </div>
+            </td>
+            {FRETS.map((fret) => (
+              <td key={fret}>
+                <label className="fret-selector">
+                  <input
+                    className="fret-selector-input"
+                    type="radio"
+                    name={'string-' + stringIdx}
+                    value={fret}
+                    checked={selection === fret}
+                    onChange={() => onChange(fret)}
+                  />
+                  <span className="fret-selector-label">{fret === 0 ? 'Open' : fret}</span>
+                </label>
+              </td>
+            ))}
+          </tr>
+        );
+      }
+
+      function Fretboard({ positions, onChange, tuning }) {
+        return (
+          <div className="fretboard-wrapper">
+            <table className="fretboard">
+              <thead>
+                <tr>
+                  <th className="mute-col">Mute</th>
+                  <th className="string-col">String</th>
+                  {FRETS.map((fret) => (
+                    <th key={fret}>{fret === 0 ? 'Open' : 'F' + fret}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {positions.map((selection, idx) => (
+                  <StringRow
+                    key={idx}
+                    stringIdx={idx}
+                    selection={selection}
+                    onChange={(value) => onChange(idx, value)}
+                    tuning={tuning}
+                  />
+                ))}
+              </tbody>
+            </table>
           </div>
-          <div>
-            <label className="control-label" htmlFor="transpose">Transpose:</label>
-            <input
-              id="transpose"
-              type="number"
-              min={-12}
-              max={12}
-              step={1}
-              value={transpose}
-              onChange={(e) => {
-                const val = e.target.value;
-                const n = parseInt(val, 10);
-                const clamped = Number.isFinite(n) ? Math.max(-12, Math.min(12, n)) : 0;
-                setTranspose(clamped);
-              }}
-              style={{ width: '70px', marginRight: '8px' }}
-            />
-            <span className="control-label">semitones</span>
-          </div>
-          <button type="button" className="reset-button" onClick={resetPositions}>
-            Reset to C shape
-          </button>
-        </div>
+        );
+      }
 
-        <section className="bulk-card">
-          <div className="rows-header">
-            <h2 style={{ margin: 0, color: '#23336e', fontSize: '1.2rem' }}>6-Input Rows</h2>
-            <button type="button" className="small-button" onClick={addRow}>Add Row</button>
-          </div>
-          <div className="six-row-list">
-            {rowResults.map((row, rIdx) => {
-              const parsed = row.parsed;
-              const isValid = !parsed.error && parsed.positions;
-              const displayName = isValid && row.suggestions.length ? row.suggestions[0].displayName : '—';
-              return (
-                <div key={row.id} className="six-input-row">
-                  {row.cells.map((val, cIdx) => {
-                    const err = parsed.errors && parsed.errors[cIdx];
-                    const hasErr = !!err && err !== 'empty';
+      function Tuner({ mode, onCapture }) {
+        const [isRunning, setIsRunning] = React.useState(false);
+        const [target, setTarget] = React.useState(null);
+        const [readout, setReadout] = React.useState(() => createInitialTunerReadout());
+        const [error, setError] = React.useState('');
+        const [devices, setDevices] = React.useState([]);
+        const [selectedDeviceId, setSelectedDeviceId] = React.useState('default');
+        const [deviceError, setDeviceError] = React.useState('');
+        const [isEnumerating, setIsEnumerating] = React.useState(false);
+        const [signalLevel, setSignalLevel] = React.useState(0);
+        const stateRef = React.useRef({
+          audioCtx: null,
+          analyser: null,
+          source: null,
+          stream: null,
+          buffer: null,
+          rafId: 0,
+        });
+        const targetRef = React.useRef(null);
+        const selectedDeviceRef = React.useRef('default');
+        const oscRef = React.useRef(null);
+
+        const renderOscilloscope = React.useCallback((data) => {
+          const canvas = oscRef.current;
+          if (!canvas) return;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return;
+          const width = canvas.width;
+          const height = canvas.height;
+          ctx.clearRect(0, 0, width, height);
+          ctx.fillStyle = '#f5f6ff';
+          ctx.fillRect(0, 0, width, height);
+          ctx.strokeStyle = '#dfe4ff';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(0, height / 2);
+          ctx.lineTo(width, height / 2);
+          ctx.stroke();
+          if (!data || !data.length) {
+            return;
+          }
+          ctx.strokeStyle = '#3b5bfd';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          const sampleCount = data.length;
+          const step = Math.max(1, Math.floor(sampleCount / width));
+          const points = Math.max(1, Math.floor(sampleCount / step));
+          const slice = width / points;
+          let x = 0;
+          for (let i = 0; i < points; i += 1) {
+            const sample = data[i * step];
+            const y = ((-sample + 1) / 2) * height;
+            if (i === 0) ctx.moveTo(0, y);
+            else ctx.lineTo(x, y);
+            x += slice;
+          }
+          ctx.stroke();
+        }, []);
+
+        const listDevices = React.useCallback(async () => {
+          if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+            setDeviceError('Input selection is not available in this browser.');
+            return;
+          }
+          try {
+            setIsEnumerating(true);
+            const deviceInfos = await navigator.mediaDevices.enumerateDevices();
+            const audioInputs = deviceInfos.filter((info) => info.kind === 'audioinput');
+            setDevices(audioInputs);
+            if (audioInputs.length === 0) {
+              selectedDeviceRef.current = 'default';
+              setSelectedDeviceId('default');
+              setDeviceError('No audio inputs detected.');
+              return;
+            }
+            setDeviceError('');
+            const currentId = selectedDeviceRef.current;
+            if (!audioInputs.some((info) => info.deviceId === currentId)) {
+              const fallback = audioInputs.find((info) => info.deviceId === 'default') || audioInputs[0];
+              selectedDeviceRef.current = fallback.deviceId;
+              setSelectedDeviceId(fallback.deviceId);
+            }
+          } catch (err) {
+            console.error(err);
+            setDeviceError('Could not list input devices. Grant microphone access and try again.');
+          } finally {
+            setIsEnumerating(false);
+          }
+        }, []);
+
+        const ticks = React.useMemo(() => {
+          const arr = [];
+          for (let i = -50; i <= 50; i += 5) arr.push(i);
+          return arr;
+        }, []);
+
+        const updateReadout = React.useCallback((freq) => {
+          const currentTarget = targetRef.current;
+          if (!isRunning) return;
+          if (!freq) return;
+
+          if (freq <= 0 || !isFinite(freq)) {
+            setReadout((prev) => {
+              if (prev.freq === 0 && prev.note === '--') return prev;
+              return createInitialTunerReadout();
+            });
+            return;
+          }
+
+          let noteName = '--';
+          let octave = '';
+          let cents = 0;
+
+          const targetName = currentTarget && typeof currentTarget.name === 'string'
+            ? currentTarget.name
+            : '';
+          const targetFreq = currentTarget && typeof currentTarget.freq === 'number'
+            ? currentTarget.freq
+            : null;
+
+          if (targetName && targetFreq !== null) {
+            const noteBase = targetName.replace(/\d+$/, '');
+            const octaveMatch = targetName.match(/\d+/);
+            octave = octaveMatch ? octaveMatch[0] : '';
+            cents = tunerCentsRelative(freq, targetFreq);
+            noteName = noteBase;
+
+          } else {
+            const info = tunerFreqToNoteData(freq);
+            noteName = info.name;
+            octave = String(info.octave);
+            cents = info.cents;
+          }
+
+          const displayCents = clampValue(cents, -50, 50);
+          const [statusLabel, statusKind] = tunerClassify(cents);
+
+          setReadout(() => ({
+            note: noteName,
+            octave,
+            freq,
+            cents,
+            displayCents,
+            status: statusLabel,
+            statusKind,
+            rawCents: cents,
+          }));
+        }, []);
+
+        const stop = React.useCallback(() => {
+          const state = stateRef.current;
+          if (state.rafId) {
+            cancelAnimationFrame(state.rafId);
+            state.rafId = 0;
+          }
+          if (state.source) {
+            try { state.source.disconnect(); } catch (e) { }
+            state.source = null;
+          }
+          if (state.analyser) {
+            try { state.analyser.disconnect(); } catch (e) { }
+            state.analyser = null;
+          }
+          if (state.stream) {
+            try { state.stream.getTracks().forEach((track) => track.stop()); } catch (e) { }
+            state.stream = null;
+          }
+          if (state.audioCtx) {
+            try { state.audioCtx.close(); } catch (e) { }
+            state.audioCtx = null;
+          }
+          state.buffer = null;
+          setIsRunning(false);
+          setSignalLevel(0);
+          renderOscilloscope(null);
+          setReadout((prev) => {
+            if (prev.freq === 0 && prev.note === '--') return prev;
+            return createInitialTunerReadout();
+          });
+        }, [renderOscilloscope]);
+
+        const start = React.useCallback(async (deviceId) => {
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            setError('Microphone access is not available in this browser.');
+            return;
+          }
+          stop();
+          try {
+            setError('');
+            const requestedDeviceId = typeof deviceId === 'string' ? deviceId : selectedDeviceRef.current;
+            selectedDeviceRef.current = requestedDeviceId || 'default';
+            setSelectedDeviceId(selectedDeviceRef.current);
+            const audioConstraints = {
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false,
+              latency: 0,
+            };
+            if (selectedDeviceRef.current && selectedDeviceRef.current !== 'default') {
+              audioConstraints.deviceId = { exact: selectedDeviceRef.current };
+            }
+            const stream = await navigator.mediaDevices.getUserMedia({
+              audio: audioConstraints,
+            });
+            await listDevices();
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContextClass) {
+              setError('Web Audio API not supported in this browser.');
+              stream.getTracks().forEach((track) => track.stop());
+              return;
+            }
+            const audioCtx = new AudioContextClass();
+            const analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 32768;
+            analyser.minDecibels = -90;
+            analyser.maxDecibels = -10;
+            analyser.smoothingTimeConstant = 0.0;
+            const source = audioCtx.createMediaStreamSource(stream);
+            source.connect(analyser);
+            const buffer = new Float32Array(analyser.fftSize);
+
+            stateRef.current = {
+              audioCtx,
+              analyser,
+              source,
+              stream,
+              buffer,
+              rafId: 0,
+            };
+
+            setIsRunning(true);
+
+            const tick = () => {
+              const state = stateRef.current;
+              if (!state.analyser || !state.audioCtx || !state.buffer) return;
+              state.analyser.getFloatTimeDomainData(state.buffer);
+              renderOscilloscope(state.buffer);
+              let sumSquares = 0;
+              for (let i = 0; i < state.buffer.length; i += 1) {
+                const sample = state.buffer[i];
+                sumSquares += sample * sample;
+              }
+              const rms = Math.sqrt(sumSquares / state.buffer.length);
+              setSignalLevel((prev) => prev * 0.8 + rms * 0.2);
+              const freq = tunerAutoCorrelate(state.buffer, state.audioCtx.sampleRate);
+              updateReadout(freq);
+              state.rafId = requestAnimationFrame(tick);
+            };
+            tick();
+          } catch (err) {
+            console.error(err);
+            if (err && err.name === 'OverconstrainedError') {
+              setError('Selected input is unavailable. Choose a different source and try again.');
+            } else {
+              setError('Microphone blocked or unavailable. Allow access and try again.');
+            }
+            stop();
+          }
+        }, [listDevices, renderOscilloscope, stop, updateReadout]);
+
+        React.useEffect(() => {
+          targetRef.current = target;
+        }, [target]);
+
+        React.useEffect(() => {
+          renderOscilloscope(null);
+        }, [renderOscilloscope]);
+
+        React.useEffect(() => {
+          listDevices();
+          if (!navigator.mediaDevices) return undefined;
+          const mediaDevices = navigator.mediaDevices;
+          const handler = () => {
+            listDevices();
+          };
+          if (typeof mediaDevices.addEventListener === 'function') {
+            mediaDevices.addEventListener('devicechange', handler);
+            return () => {
+              mediaDevices.removeEventListener('devicechange', handler);
+            };
+          }
+          mediaDevices.ondevicechange = handler;
+          return () => {
+            if (mediaDevices.ondevicechange === handler) {
+              mediaDevices.ondevicechange = null;
+            }
+          };
+        }, [listDevices]);
+
+        React.useEffect(() => {
+          return () => {
+            stop();
+          };
+        }, [stop]);
+
+        const targetLabel = target ? `Target: ${target.name} (${target.freq.toFixed(1)} Hz)` : 'Mode: Auto note';
+        const freqText = readout.freq > 0 ? readout.freq.toFixed(2) : '0.00';
+        const captureDisabled = mode !== 'riff' || readout.freq <= 0;
+        const captureTitle = mode !== 'riff'
+          ? 'Switch to riff mode to send tuner notes to the riff log.'
+          : readout.freq <= 0
+            ? 'Play and detect a note before capturing.'
+            : 'Send the detected note to the riff log.';
+        const hasDeviceList = devices.length > 0;
+        const deviceOptions = hasDeviceList ? devices : [{ deviceId: 'default', label: 'System default' }];
+        const deviceNote = isEnumerating
+          ? 'Scanning for audio inputs…'
+          : deviceError
+            ? deviceError
+            : hasDeviceList
+              ? ''
+              : 'Start the microphone to let the browser expose named input sources. Safari may require a refresh after granting permission.';
+        const levelPercent = Math.max(0, Math.min(1, signalLevel * 3));
+        const levelScale = 'scaleX(' + levelPercent.toFixed(3) + ')';
+        const levelValue = Math.round(levelPercent * 100);
+
+        const handleDeviceChange = React.useCallback((event) => {
+          const nextId = event.target.value;
+          selectedDeviceRef.current = nextId;
+          setSelectedDeviceId(nextId);
+          if (isRunning) {
+            start(nextId);
+          }
+        }, [isRunning, start]);
+
+        const handleCapture = () => {
+          if (captureDisabled || !onCapture) return;
+          onCapture({
+            note: readout.note,
+            octave: readout.octave,
+            freq: readout.freq,
+            cents: readout.rawCents,
+            target: target ? target.name : null,
+          });
+        };
+
+        return (
+          <section className="tuner-card">
+            <div className="tuner-header">
+              <h2>Guitar Tuner</h2>
+              <div className="tuner-sub">{targetLabel}</div>
+            </div>
+            <div className="tuner-controls">
+              <div className="tuner-input-select">
+                <label htmlFor="tuner-input-source">Input source</label>
+                <select
+                  id="tuner-input-source"
+                  className="tuner-select"
+                  value={selectedDeviceId}
+                  onChange={handleDeviceChange}
+                  disabled={isEnumerating && !hasDeviceList}
+                >
+                  {deviceOptions.map((device, idx) => {
+                    const label = device.label && device.label.trim()
+                      ? device.label
+                      : device.deviceId === 'default'
+                        ? 'System default'
+                        : `Microphone ${idx + 1}`;
                     return (
-                      <input
-                        key={cIdx}
-                        className={'cell-input' + (hasErr ? ' error' : '')}
-                        value={val}
-                        placeholder={cIdx === 0 ? 'X' : '0'}
-                        onChange={(e) => updateCell(rIdx, cIdx, e.target.value)}
-                        maxLength={3}
-                        inputMode="text"
-                      />
+                      <option key={device.deviceId || String(idx)} value={device.deviceId}>
+                        {label}
+                      </option>
                     );
                   })}
-                  <div className="row-meta">
-                    <code className="shape-pill">{isValid ? formatShape(parsed.positions) : '{ ? ? ? ? ? ? }'}</code>
-                    <span className="parsed-suggest">{displayName}</span>
-                    <button
-                      type="button"
-                      className="small-button"
-                      onClick={() => isValid && setPositions(parsed.positions)}
-                      disabled={!isValid}
-                      title="Load on fretboard"
-                    >
-                      Load
-                    </button>
-                    <button
-                      type="button"
-                      className="small-button"
-                      onClick={() => removeRow(rIdx)}
-                      disabled={rows.length <= 1}
-                      title="Remove row"
-                      style={{ background: '#9aa6ff' }}
-                    >
-                      Remove
-                    </button>
+                </select>
+              </div>
+              <button
+                type="button"
+                className="tuner-button primary"
+                onClick={() => start()}
+                disabled={isRunning}
+              >
+                Start microphone
+              </button>
+              <button
+                type="button"
+                className="tuner-button"
+                onClick={stop}
+                disabled={!isRunning}
+              >
+                Stop
+              </button>
+              <button
+                type="button"
+                className="small-button"
+                onClick={handleCapture}
+                disabled={captureDisabled}
+                title={captureTitle}
+              >
+                Send note to riff log
+              </button>
+            </div>
+            {deviceNote ? <div className="tuner-input-note">{deviceNote}</div> : null}
+            {error ? <div className="tuner-message">{error}</div> : null}
+            <div className="tuner-visuals">
+              <div className="tuner-oscilloscope">
+                <canvas ref={oscRef} className="tuner-oscilloscope-canvas" width="600" height="120" />
+              </div>
+              <div className="tuner-level">
+                <span className="tuner-level-label">Signal</span>
+                <div className="tuner-level-meter">
+                  <div className="tuner-level-fill" style={{ transform: levelScale }} />
+                </div>
+                <span className="tuner-level-value">{levelValue}%</span>
+              </div>
+            </div>
+            <div className="tuner-readouts">
+              <div className="tuner-box">
+                <div className="tuner-label">Pitch</div>
+                <div className="tuner-note-row">
+                  <div className="tuner-note">{readout.note}</div>
+                  <div className="tuner-octave">{readout.octave}</div>
+                </div>
+                <div className="tuner-frequency">
+                  {freqText} Hz •{' '}
+                  <span className={'tuner-status' + (readout.statusKind ? ' ' + readout.statusKind : '')}>
+                    {readout.status}
+                  </span>
+                </div>
+              </div>
+              <div className="tuner-box">
+                <div className="tuner-label">Cents</div>
+                <div className="tuner-meter">
+                  <div
+                    className="tuner-needle"
+                    style={{ left: ((readout.displayCents + 50) / 100) * 100 + '%' }}
+                  />
+                  <div className="tuner-ticks">
+                    {ticks.map((tick) => (
+                      <span
+                        key={tick}
+                        className={'tuner-tick' + (tick % 25 === 0 ? ' major' : '')}
+                        style={{ left: ((tick + 50) / 100) * 100 + '%' }}
+                      />
+                    ))}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-          <div className="bulk-hint">Type X for muted, 0 for open, and 1–24 for frets. Inputs are 3-chars wide so 11 1 doesn’t look like 111.</div>
-        </section>
-
-        <Fretboard positions={positions} onChange={handleFretChange} tuning={tuning} />
-
-        <section className="insight-card">
-          <h2>Notes Played</h2>
-          {analysis.playedNotes.length ? (
-            <React.Fragment>
-              <p>
-                The voicing produces {analysis.uniqueNotes.length} unique note{analysis.uniqueNotes.length === 1 ? '' : 's'}.
-                {analysis.bassNote ? ' Bass note: ' + analysis.bassNote + '.' : ''}
-              </p>
-              <div className="note-tags">
-                {analysis.uniqueNotes.map((note) => (
-                  <span key={note} className="note-tag">
-                    {note}
-                  </span>
-                ))}
+                <div className="tuner-cents-row">
+                  <span>-50</span>
+                  <span className="tuner-cents-value">{Math.round(readout.displayCents)}</span>
+                  <span>+50</span>
+                </div>
               </div>
-              <ul className="note-breakdown">
-                {analysis.playedNotes.map((note, index) => (
-                  <li key={note.string + '-' + note.fret + '-' + index}>
-                    <span className="note-strong">String {tuning.length - note.string}</span> fret {note.fret} → <strong>{note.note}</strong>
-                  </li>
-                ))}
-              </ul>
-            </React.Fragment>
-          ) : (
-            <p>Select at least two strings to start the analysis.</p>
-          )}
-        </section>
-
-        <section className="insight-card">
-          <h2>Chord Suggestions</h2>
-          {analysis.uniqueNotes.length < 2 ? (
-            <p>You need at least two distinct notes to build a chord.</p>
-          ) : chordSuggestions.length ? (
-            <ul className="chord-list">
-              {chordSuggestions.map((suggestion) => (
-                <li key={suggestion.id} className="chord-item">
-                  <span className="chord-name">{suggestion.displayName}</span>
-                  <span className="chord-details">{suggestion.description}</span>
-                  <span className="chord-formula">{suggestion.formula}</span>
-                </li>
+            </div>
+            <div className="tuner-label" style={{ marginBottom: '6px' }}>String targets</div>
+            <div className="tuner-strings">
+              <button
+                type="button"
+                className={'tuner-chip' + (!target ? ' active' : '')}
+                onClick={() => setTarget(null)}
+              >
+                Auto
+              </button>
+              {TUNER_STRING_TARGETS.map((string) => (
+                <button
+                  key={string.name}
+                  type="button"
+                  className={'tuner-chip' + (target && target.name === string.name ? ' active' : '')}
+                  onClick={() => setTarget(string)}
+                >
+                  {string.name}
+                </button>
               ))}
-            </ul>
-          ) : (
-            <p>We do not recognize this voicing yet. Try simplifying the shape or adjusting the bass note.</p>
-          )}
-        </section>
-      </div>
-    );
-  }
+            </div>
+            <div className="tuner-footer">
+              <span className="tuner-hint">Use the tuner to dial in a pitch, then capture it into the riff log.</span>
+            </div>
+          </section>
+        );
+      }
 
-  const root = ReactDOM.createRoot(document.getElementById('root'));
-  root.render(<App />);
-</script>
-</body>
+      function App() {
+        const [positions, setPositions] = React.useState(DEFAULT_RIFF_POSITIONS);
+        const [transpose, setTranspose] = React.useState(0);
+        const [mode, setMode] = React.useState('riff');
+        const emptyRow = () => ['', '', '', '', '', ''];
+        const [rows, setRows] = React.useState([emptyRow()]);
+        const inputsRef = React.useRef({});
+        const [selectedNames, setSelectedNames] = React.useState(['']);
+        const [riffNotes, setRiffNotes] = React.useState([]);
+        const riffIdRef = React.useRef(0);
+        const appendRiffEvent = React.useCallback((entry) => {
+          setRiffNotes((prev) => {
+            const next = prev.concat(entry);
+            return next.length > MAX_RIFF_EVENTS ? next.slice(next.length - MAX_RIFF_EVENTS) : next;
+          });
+        }, []);
+
+        const tuning = React.useMemo(() => getTransposedTuning(transpose), [transpose]);
+
+        const handleFretChange = (stringIdx, value) => {
+          if (mode === 'riff') {
+            if (value === 'x') {
+              setPositions(DEFAULT_RIFF_POSITIONS.slice());
+              return;
+            }
+            const stringTuning = tuning[stringIdx];
+            const pitch = stringTuning.midi + value;
+            const noteIndex = (NOTE_INDEX[stringTuning.name] + value) % NOTE_NAMES.length;
+            const note = NOTE_NAMES[noteIndex];
+            const octave = Math.floor(pitch / 12) - 1;
+            const stringNumber = tuning.length - stringIdx;
+            const freq = A4 * Math.pow(2, (pitch - 69) / 12);
+            riffIdRef.current += 1;
+            appendRiffEvent({
+              id: 'riff-' + riffIdRef.current,
+              source: 'fretboard',
+              string: stringNumber,
+              fret: value,
+              note,
+              octave,
+              freq,
+              cents: 0,
+            });
+            setPositions(DEFAULT_RIFF_POSITIONS.slice());
+            return;
+          }
+          setPositions((prev) => {
+            const next = prev.slice();
+            next[stringIdx] = value;
+            return next;
+          });
+        };
+
+        const resetPositions = () => {
+          if (mode === 'riff') {
+            setPositions(DEFAULT_RIFF_POSITIONS.slice());
+          } else {
+            setPositions(DEFAULT_POSITIONS.slice());
+          }
+        };
+
+        React.useEffect(() => {
+          if (mode === 'riff') {
+            setRiffNotes([]);
+            setPositions(DEFAULT_RIFF_POSITIONS.slice());
+          } else {
+            setPositions(DEFAULT_POSITIONS.slice());
+          }
+        }, [mode]);
+
+        const handleTunerCapture = React.useCallback((payload) => {
+          if (!payload || !payload.note || !payload.freq || payload.freq <= 0) return;
+          riffIdRef.current += 1;
+          appendRiffEvent({
+            id: 'riff-' + riffIdRef.current,
+            source: 'tuner',
+            note: payload.note,
+            octave: payload.octave,
+            freq: payload.freq,
+            cents: payload.cents,
+            target: payload.target || null,
+          });
+        }, [appendRiffEvent]);
+
+        const analysis = React.useMemo(() => analyzePositions(positions, tuning), [positions, tuning]);
+        const chordSuggestions = React.useMemo(
+          () => computeChordSuggestions(analysis.uniqueNotes, analysis.bassNote),
+          [analysis.uniqueNotes, analysis.bassNote]
+        );
+
+        function parseCellValue(v) {
+          const t = (v || '').trim();
+          if (t === '') return { ok: false, reason: 'empty' };
+          if (/^[xX]$/.test(t)) return { ok: true, value: 'x' };
+          if (/^\d+$/.test(t)) {
+            const n = parseInt(t, 10);
+            if (n < 0 || n > 24) return { ok: false, reason: 'range' };
+            return { ok: true, value: n };
+          }
+          return { ok: false, reason: 'invalid' };
+        }
+
+        function parseRowCells(cells) {
+          if (!cells || cells.length !== 6) return { error: 'Need 6 values', positions: null, errors: Array(6).fill('empty') };
+          const pos = [];
+          const errs = [];
+          for (let i = 0; i < 6; i += 1) {
+            const r = parseCellValue(cells[i]);
+            if (!r.ok) {
+              errs[i] = r.reason;
+            } else {
+              errs[i] = null;
+              pos.push(r.value);
+            }
+          }
+          const anyError = errs.some((e) => e);
+          if (anyError) return { error: 'incomplete', positions: null, errors: errs };
+          return { error: null, positions: pos, errors: errs };
+        }
+
+        const rowResults = React.useMemo(() => {
+          return rows.map((cells, idx) => {
+            const parsed = parseRowCells(cells);
+            if (parsed.error || !parsed.positions) {
+              return { id: 'row-' + idx, cells, parsed, analysis: null, suggestions: [] };
+            }
+            const a = analyzePositions(parsed.positions, tuning);
+            const s = computeChordSuggestions(a.uniqueNotes, a.bassNote);
+            return { id: 'row-' + idx, cells, parsed, analysis: a, suggestions: s };
+          });
+        }, [rows, tuning]);
+
+        React.useEffect(() => {
+          // Ensure selected names array matches rows and defaults to the simplest option
+          setSelectedNames((prev) => {
+            const next = rows.map((_, idx) => {
+              const row = rowResults[idx];
+              if (!row || !row.suggestions || row.suggestions.length === 0) return '';
+              const current = prev[idx] || '';
+              const found = row.suggestions.find((s) => s.displayName === current);
+              if (found) return current;
+              // choose shortest display name
+              let best = row.suggestions[0].displayName;
+              for (let i = 1; i < row.suggestions.length; i += 1) {
+                const cand = row.suggestions[i].displayName;
+                if (cand.length < best.length) best = cand;
+              }
+              return best;
+            });
+            return next;
+          });
+        }, [rows, rowResults]);
+
+        function buildNamesList() {
+          return rowResults.map((row, idx) => {
+            if (!row.parsed || row.parsed.error || !row.parsed.positions) return '';
+            if (!row.suggestions || row.suggestions.length === 0) return '';
+            return selectedNames[idx] || '';
+          });
+        }
+
+        function handleCopyNames() {
+          const names = buildNamesList();
+          const text = names.join('\n');
+          const doExecCopy = () => {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); } catch (e) { }
+            document.body.removeChild(ta);
+          };
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).catch(doExecCopy);
+          } else {
+            doExecCopy();
+          }
+        }
+
+        function handleDownloadNames() {
+          const names = buildNamesList();
+          const text = names.join('\n');
+          const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'chord-names.txt';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
+
+        function updateCell(rowIdx, cellIdx, value) {
+          setRows((prev) => {
+            const next = prev.map((r) => r.slice());
+            next[rowIdx][cellIdx] = value;
+            return next;
+          });
+        }
+
+        function focusCell(r, c) {
+          const key = r + '-' + c;
+          const el = inputsRef.current[key];
+          if (el && typeof el.focus === 'function') {
+            el.focus();
+            // place caret at end
+            try { const v = el.value; el.setSelectionRange(v.length, v.length); } catch (e) { }
+          }
+        }
+
+        function addRow(focus = false) {
+          setRows((prev) => {
+            const idx = prev.length;
+            const next = prev.concat([emptyRow()]);
+            if (focus) {
+              setTimeout(() => focusCell(idx, 0), 0);
+            }
+            return next;
+          });
+        }
+
+        function removeRow(rowIdx) {
+          setRows((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== rowIdx)));
+        }
+
+        function handleEnter(rIdx, cIdx, shift) {
+          if (shift) {
+            // move backwards
+            if (cIdx > 0) {
+              focusCell(rIdx, cIdx - 1);
+            } else if (rIdx > 0) {
+              focusCell(rIdx - 1, 5);
+            }
+            return;
+          }
+          // move forwards
+          if (cIdx < 5) {
+            focusCell(rIdx, cIdx + 1);
+          } else if (rIdx < rows.length - 1) {
+            focusCell(rIdx + 1, 0);
+          } else {
+            addRow(true);
+          }
+        }
+
+        return (
+          <div className="app">
+            <header>
+              <h1>Chord Namer</h1>
+              <p className="lead">
+                Select frets across the guitar strings to discover matching chord names. The engine translates your voicing into theory-friendly labels.
+              </p>
+            </header>
+
+            <div className="controls">
+              <div>
+                <span className="control-label">Current shape:</span>
+                <code className="shape-pill">{formatShape(positions)}</code>
+              </div>
+              <div>
+                <label className="control-label" htmlFor="transpose">Transpose:</label>
+                <input
+                  id="transpose"
+                  type="number"
+                  min={-12}
+                  max={12}
+                  step={1}
+                  value={transpose}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const n = parseInt(val, 10);
+                    const clamped = Number.isFinite(n) ? Math.max(-12, Math.min(12, n)) : 0;
+                    setTranspose(clamped);
+                  }}
+                  style={{ width: '70px', marginRight: '8px' }}
+                />
+                <span className="control-label">semitones</span>
+              </div>
+              <button type="button" className="reset-button" onClick={resetPositions}>
+                {mode === 'riff' ? 'Clear fretboard' : 'Reset to open strings'}
+              </button>
+            </div>
+
+            <div className="mode-toggle">
+              <button
+                type="button"
+                className={'mode-button' + (mode === 'chord' ? ' active' : '')}
+                onClick={() => setMode('chord')}
+              >
+                Chord Mode
+              </button>
+              <button
+                type="button"
+                className={'mode-button' + (mode === 'riff' ? ' active' : '')}
+                onClick={() => setMode('riff')}
+              >
+                Riff Mode
+              </button>
+            </div>
+
+            <div className="main-layout">
+              <div className="primary-column">
+                <Fretboard positions={positions} onChange={handleFretChange} tuning={tuning} />
+                <Tuner mode={mode} onCapture={handleTunerCapture} />
+                {mode === 'chord' ? (
+                  <React.Fragment>
+                    <section className="insight-card">
+                      <h2>Notes Played</h2>
+                      {analysis.playedNotes.length ? (
+                        <React.Fragment>
+                          <p>
+                            The voicing produces {analysis.uniqueNotes.length} unique note{analysis.uniqueNotes.length === 1 ? '' : 's'}.
+                            {analysis.bassNote ? ' Bass note: ' + analysis.bassNote + '.' : ''}
+                          </p>
+                          <div className="note-tags">
+                            {analysis.uniqueNotes.map((note) => (
+                              <span key={note} className="note-tag">
+                                {note}
+                              </span>
+                            ))}
+                          </div>
+                          <ul className="note-breakdown">
+                            {analysis.playedNotes.map((note, index) => (
+                              <li key={note.string + '-' + note.fret + '-' + index}>
+                                <span className="note-strong">String {tuning.length - note.string}</span> fret {note.fret} → <strong>{note.note}</strong>
+                              </li>
+                            ))}
+                          </ul>
+                        </React.Fragment>
+                      ) : (
+                        <p>Select at least two strings to start the analysis.</p>
+                      )}
+                    </section>
+
+                    <section className="insight-card">
+                      <h2>Chord Suggestions</h2>
+                      {analysis.uniqueNotes.length < 2 ? (
+                        <p>You need at least two distinct notes to build a chord.</p>
+                      ) : chordSuggestions.length ? (
+                        <ul className="chord-list">
+                          {chordSuggestions.map((suggestion) => (
+                            <li key={suggestion.id} className="chord-item">
+                              <span className="chord-name">{suggestion.displayName}</span>
+                              <span className="chord-details">{suggestion.description}</span>
+                              <span className="chord-formula">{suggestion.formula}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p>We do not recognize this voicing yet. Try simplifying the shape or adjusting the bass note.</p>
+                      )}
+                    </section>
+                  </React.Fragment>
+                ) : (
+                  <section className="insight-card">
+                    <h2>Riff Notes</h2>
+                    {riffNotes.length ? (
+                      <ul className="riff-log">
+                        {riffNotes.slice().reverse().map((event) => (
+                          <li key={event.id} className="riff-log-item">
+                            <span className="riff-log-note">{event.note}{event.octave}</span>
+                            <span className="riff-log-meta">
+                              {event.source === 'fretboard'
+                                ? `String ${event.string} · Fret ${event.fret}`
+                                : `${event.freq.toFixed(2)} Hz${event.target ? ' · ' + event.target : ''}${Number.isFinite(event.cents) ? ' · ' + Math.round(event.cents) + ' cents' : ''
+                                }`}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>Tap frets to capture single notes. Each pick logs here while the fretboard clears for the next hit.</p>
+                    )}
+                  </section>
+                )}
+              </div>
+              <aside className="side-column">
+                <section className="bulk-card">
+                  <div className="rows-header">
+                    <h2 style={{ margin: 0, color: '#23336e', fontSize: '1.2rem' }}>6-Input Rows</h2>
+                    <div className="rows-actions">
+                      <button type="button" className="small-button" onClick={handleCopyNames}>Copy Names</button>
+                      <button type="button" className="small-button" onClick={handleDownloadNames}>Save Names</button>
+                      <button type="button" className="small-button" onClick={() => addRow(true)}>Add Row</button>
+                    </div>
+                  </div>
+                  <div className="six-row-list">
+                    {rowResults.map((row, rIdx) => {
+                      const parsed = row.parsed;
+                      const isValid = !parsed.error && parsed.positions;
+                      return (
+                        <div key={row.id} className="six-input-row flex-wrap">
+                          {row.cells.map((val, cIdx) => {
+                            const err = parsed.errors && parsed.errors[cIdx];
+                            const hasErr = !!err && err !== 'empty';
+                            return (
+                              <input
+                                key={cIdx}
+                                className={'cell-input' + (hasErr ? ' error' : '')}
+                                value={val}
+                                placeholder={cIdx === 0 ? 'X' : '0'}
+                                onChange={(e) => updateCell(rIdx, cIdx, e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleEnter(rIdx, cIdx, e.shiftKey);
+                                  }
+                                }}
+                                maxLength={3}
+                                inputMode="text"
+                                ref={(el) => {
+                                  const key = rIdx + '-' + cIdx;
+                                  if (el) inputsRef.current[key] = el; else delete inputsRef.current[key];
+                                }}
+                              />
+                            );
+                          })}
+                          <div className="row-meta flex-wrap">
+                            <code className="shape-pill">{isValid ? formatShape(parsed.positions) : '{ ? ? ? ? ? ? }'}</code>
+                            {isValid && row.suggestions.length ? (
+                              <select
+                                className="select-suggest"
+                                value={selectedNames[rIdx] || ''}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setSelectedNames((prev) => {
+                                    const next = prev.slice();
+                                    next[rIdx] = val;
+                                    return next;
+                                  });
+                                }}
+                              >
+                                {row.suggestions.map((sug) => (
+                                  <option key={sug.id} value={sug.displayName}>{sug.displayName}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <span className="parsed-suggest">—</span>
+                            )}
+                            <button
+                              type="button"
+                              className="small-button"
+                              onClick={() => isValid && mode === 'chord' && setPositions(parsed.positions)}
+                              disabled={!isValid || mode === 'riff'}
+                              title={mode === 'riff' ? 'Switch to chord mode to load shapes' : 'Load on fretboard'}
+                            >
+                              Load
+                            </button>
+                            <button
+                              type="button"
+                              className="small-button"
+                              onClick={() => removeRow(rIdx)}
+                              disabled={rows.length <= 1}
+                              title="Remove row"
+                              style={{ background: '#9aa6ff' }}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="bulk-hint">Type X for muted, 0 for open, and 1–24 for frets. Inputs are 3-chars wide so 11 1 doesn’t look like 111.</div>
+                </section>
+              </aside>
+            </div>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<App />);
+    </script>
+  </body>
+
 </html>
