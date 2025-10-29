@@ -400,6 +400,12 @@
         text-align: right;
       }
 
+      @media (max-width: 720px) {
+        .tuner-oscilloscope-canvas {
+          height: 80px;
+        }
+      }
+
       .tuner-button {
         border: 1px solid #c9d1ff;
         background: #eff2ff;
@@ -1232,16 +1238,45 @@
         );
       }
 
-      function Tuner({ mode, onCapture }) {
+      const STORAGE_KEYS = {
+        deviceId: 'chordname:tuner:deviceId',
+        micEnabled: 'chordname:tuner:micEnabled'
+      };
+
+      function loadStoredValue(key, fallback) {
+        try {
+          if (!window.localStorage) return fallback;
+          const value = window.localStorage.getItem(key);
+          return value === null ? fallback : value;
+        } catch (err) {
+          return fallback;
+        }
+      }
+
+      function storeValue(key, value) {
+        try {
+          if (!window.localStorage) return;
+          if (value === undefined || value === null) {
+            window.localStorage.removeItem(key);
+          } else {
+            window.localStorage.setItem(key, value);
+          }
+        } catch (err) {
+          /* ignore */
+        }
+      }
+
+function Tuner({ mode, onCapture }) {
         const [isRunning, setIsRunning] = React.useState(false);
         const [target, setTarget] = React.useState(null);
         const [readout, setReadout] = React.useState(() => createInitialTunerReadout());
         const [error, setError] = React.useState('');
         const [devices, setDevices] = React.useState([]);
-        const [selectedDeviceId, setSelectedDeviceId] = React.useState('default');
+        const [selectedDeviceId, setSelectedDeviceId] = React.useState(() => loadStoredValue(STORAGE_KEYS.deviceId, 'default'));
         const [deviceError, setDeviceError] = React.useState('');
         const [isEnumerating, setIsEnumerating] = React.useState(false);
         const [signalLevel, setSignalLevel] = React.useState(0);
+        const [resumeOnMount, setResumeOnMount] = React.useState(() => loadStoredValue(STORAGE_KEYS.micEnabled, 'off') === 'on');
         const stateRef = React.useRef({
           audioCtx: null,
           analyser: null,
@@ -1251,7 +1286,7 @@
           rafId: 0,
         });
         const targetRef = React.useRef(null);
-        const selectedDeviceRef = React.useRef('default');
+        const selectedDeviceRef = React.useRef(() => loadStoredValue(STORAGE_KEYS.deviceId, 'default') || 'default');
         const oscRef = React.useRef(null);
 
         const renderOscilloscope = React.useCallback((data) => {
